@@ -1,0 +1,10 @@
+program,level,triggered_by,thoughts,respond_with,pressure
+shame,20,mistake;exposure;being seen,I am worthless|They saw the real me,hide,10
+guilt,30,the past;what I did,I deserve punishment|I should have known,self_punish,10
+apathy,50,effort;the news,What's the use|Nothing ever changes,give_up,10
+grief,75,loss;what is gone,I'll never get over it|It's gone forever,mourn,10
+fear,100,threat;uncertainty;the future,Something bad will happen|I am not safe,flee,10
+desire,125,what others have;the next thing,I must have it|Then I'll be happy,grasp,10
+love,125,the beloved;absence of the beloved,Don't leave me|I can't live without you|You belong to me,cling,10
+anger,150,obstacle;injustice;disrespect,How dare they|I'll show them,attack,10
+pride,175,comparison;praise;being wrong,I am better than this|I did that myself,inflate,10
