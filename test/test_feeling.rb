@@ -54,7 +54,7 @@ class TestFeeling < Minitest::Test
   end
 
   def test_waves_are_one_to_three
-    f = fear(pressure: 100)
+    f = fear(pressure: 151) # more than fifty maximal waves can drain
     50.times do
       wave = f.surrender!
       assert_includes 1..3, wave
