@@ -29,6 +29,7 @@ require_relative "human_plus/human"
 require_relative "human_plus/letting_go"
 require_relative "human_plus/npc"
 require_relative "human_plus/town"
+require_relative "human_plus/conversation"
 
 # Deliberate namespace pollution in service of the art: the cast, hoisted
 # to the top level. FEELINGS = PROGRAMS = RESPONSES is not a slogan here —
