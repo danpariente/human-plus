@@ -15,6 +15,8 @@ def usage
       human+ test [file.csv]          Run stimuli test cases (default data/stimuli.csv)
       human+ surrender <feeling>      Interactive: stay with the feeling until it runs out
       human+ emancipate               The full pathway: surrender everything below Courage
+      human+ town ["<stimulus>" [n]]  n ticks of Smallville on the Map: reactions become
+                                      the next tick's stimuli (after arXiv 2304.03442)
 
     The real documentation is read with ri:
       rake ri && ri -d .ri HumanPlus::Human#surrender
@@ -154,6 +156,52 @@ def emancipate(npc)
   end
 end
 
+def print_town(stimulus, ticks)
+  town = Town.new
+  puts "The town (data/town.csv):"
+  town.residents.each do |r|
+    note = r.aware? ? "reflects at #{r.awareness} thoughts on one subject" : "never looks — the firmware is in charge"
+    puts format("  %-8s calibration %3d  %s", r.name, r.human.calibration, note)
+  end
+  puts
+  puts %(the world incites: "#{stimulus}")
+  puts
+
+  town.run(stimulus, ticks: ticks) do |n, events|
+    puts "tick #{n}"
+    events.each do |e|
+      case e
+      when Town::Reacted
+        at = e.witnessed.reaction ? "#{e.witnessed.actor}'s :#{e.witnessed.reaction}" : e.witnessed.actor
+        puts format("  %-8s %s(%d)  pressure %-3d -> :%-12s at %s", e.actor, e.feeling, e.level, e.pressure, e.reaction, at)
+      when Town::Reflected
+        puts format("  %-8s reflects: %s", e.actor, e.insight)
+        puts format("  %-8s lets go of %s  (waves: %s)  calibration: %d", "", e.feeling, e.waves.join(" "), e.calibration)
+      when Town::Radiated
+        puts format("  %-8s %s(%d) -> :%s — unconditional; witnessed with no trigger in it", e.actor, e.state, e.level, e.reaction)
+      when Town::Unmoved
+        puts format("  %-8s nothing hooks — the stimulus passes through", e.actor)
+      end
+    end
+    puts
+  end
+
+  if town.quiet?
+    puts "The town is quiet — nothing below Courage was left to pass it on."
+  else
+    puts "After #{ticks} ticks the town is still running. The pressure never left — it moved:"
+  end
+  town.residents.each do |r|
+    top = r.human.programs.max_by(&:pressure)
+    status = if top.nil?
+               "no programs left"
+             else
+               "#{r.human.programs.size} programs installed, most pressurized: #{top.name} (#{top.pressure})"
+             end
+    puts format("  %-8s calibration %3d  %s", r.name, r.human.calibration, status)
+  end
+end
+
 command, *rest = ARGV
 
 case command
@@ -164,5 +212,6 @@ when "mind"       then rest.empty? ? usage : print_mind(Human.default, rest[0].t
 when "test"       then run_stimuli(rest[0] || File.expand_path("../data/stimuli.csv", __dir__))
 when "surrender"  then rest.empty? ? usage : interactive_surrender(Human.default, rest[0].to_sym)
 when "emancipate" then emancipate(Human.default)
+when "town"       then print_town(rest[0] || "criticism lands on a mistake", (rest[1] || 12).to_i)
 else usage
 end

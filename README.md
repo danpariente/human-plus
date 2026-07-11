@@ -140,6 +140,75 @@ After: #<NPC calibration=500 programs=[] states=[:love]>
     the mind:       [] — quiet.
 ```
 
+## The town
+
+After Park et al., *Generative Agents: Interactive Simulacra of Human
+Behavior* ([arXiv:2304.03442](https://arxiv.org/abs/2304.03442)), and its
+open-source rendering, [ai-town](https://github.com/a16z-infra/ai-town).
+The paper builds believable simulated humans from a memory stream,
+reflection, and planning; its marquee result is emergence — a party
+invitation diffusing through Smallville. `Town` runs the same loop through
+Hawkins, and what diffuses here is pressure:
+
+- **One resident's response is the next tick's stimulus.** The `Narrator`
+  says how each reaction is witnessed (`data/perception.csv` — perception
+  is firmware too), and every witnessed sub-200 reaction contains someone
+  else's trigger: a `:hide` reads as *absence of the beloved* (love
+  clings), a `:cling` as *an obstacle* (anger attacks), an `:attack` as
+  *a threat* (fear flees), a `:grasp` as *look at what others have*
+  (desire spreads mimetically). Among NPCs the pressure never leaves the
+  town — it moves.
+- **Attention follows the strongest pull.** The paper scores memory
+  retrieval by recency × importance × relevance; here, of everything in
+  the air this tick, the lowest-calibrating hook fires — the same rule as
+  `Human#experience`.
+- **Reflection is the exit.** The paper's agents synthesize memories into
+  higher-level insight. Here reflection is the one thing firmware cannot
+  do for itself: noticing that the Mind's thousands of thoughts on a
+  subject are variations on a seed — that the feeling is the program, not
+  the world. A resident with an `awareness` threshold (thoughts on one
+  subject before the noticing) reflects, and reflection opens the only
+  exit there is: `surrender`.
+- **Programs react; states radiate.** An emancipated resident answers
+  everything with `:give_freely`, witnessed as a stimulus containing no
+  trigger at all. The cascade dies at their doorstep.
+
+```
+$ bin/human+ town
+
+the world incites: "criticism lands on a mistake"
+
+tick 1
+  alice    shame(20)  pressure 11  -> :hide         at the world
+  ...
+tick 2
+  alice    love(125)  pressure 11  -> :cling        at bea's :hide
+  ...
+tick 4
+  alice    fear(100)  pressure 11  -> :flee         at bea's :attack
+  ...
+tick 5
+  carol    reflects: 12,000 thoughts, every one a variation on
+           "Something bad will happen" — the fear is the program, not the world
+           lets go of fear  (waves: 1 1 3 2 2 2 1)  calibration: 94
+tick 6
+  alice    fear(100)  pressure 13  -> :flee         at bea's :flee
+  bea      fear(100)  pressure 13  -> :flee         at alice's :flee
+  carol    nothing hooks — the stimulus passes through
+
+After 12 ticks the town is still running. The pressure never left — it moved:
+  alice    calibration  95  9 programs installed, most pressurized: fear (19)
+  bea      calibration  95  9 programs installed, most pressurized: fear (19)
+  carol    calibration  94  8 programs installed, most pressurized: shame (11)
+```
+
+The default cast is `data/town.csv`: alice and bea never look; carol
+reflects at 12,000 thoughts on one subject. The `Narrator` is the seam
+where a generative Mind slots in: anything that answers
+`witness(actor, reaction)` with a sentence can narrate the town. ai-town
+does this step with an LLM; here it is a CSV, because the Common Human's
+perception is factory firmware too.
+
 ## The CLI
 
 ```
@@ -150,6 +219,7 @@ bin/human+ mind <feeling> [n]       # n thoughts the feeling generates
 bin/human+ test [file.csv]          # run the stimuli test cases
 bin/human+ surrender <feeling>      # interactive letting-go session
 bin/human+ emancipate               # the full pathway
+bin/human+ town ["<stimulus>" [n]]  # n ticks of Smallville on the Map
 ```
 
 ## The documentation is read with `ri`

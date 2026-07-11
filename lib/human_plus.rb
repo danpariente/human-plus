@@ -16,6 +16,7 @@
 #   ri HumanPlus::Feeling          # = Program = Response
 #   ri HumanPlus::NPC              # the default configuration
 #   ri HumanPlus::Mind             # feelings -> thoughts, never the reverse
+#   ri HumanPlus::Town             # generative agents on the Map
 module HumanPlus
 end
 
@@ -27,6 +28,7 @@ require_relative "human_plus/assembler"
 require_relative "human_plus/human"
 require_relative "human_plus/letting_go"
 require_relative "human_plus/npc"
+require_relative "human_plus/town"
 
 # Deliberate namespace pollution in service of the art: the cast, hoisted
 # to the top level. FEELINGS = PROGRAMS = RESPONSES is not a slogan here —
@@ -38,4 +40,5 @@ Program = HumanPlus::Feeling # FEELINGS = PROGRAMS
 Response = HumanPlus::Feeling # ... = RESPONSES
 NPC = HumanPlus::NPC
 Mind = HumanPlus::Mind
+Town = HumanPlus::Town
 MapOfConsciousness = HumanPlus::MapOfConsciousness
