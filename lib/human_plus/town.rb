@@ -55,7 +55,8 @@ module HumanPlus
     # This is deliberately a seam. ai-town narrates this step with an LLM;
     # anything that answers <tt>witness(actor, reaction) → String</tt>
     # (or +nil+ for the unwitnessable) can replace the CSV — a generative
-    # Mind slots in here without the Town changing shape.
+    # Mind slots in here without the Town changing shape. One is provided:
+    # see GenerativeNarrator (<tt>require "human_plus/generative_narrator"</tt>).
     class Narrator
       # The perception firmware of the Common Human town.
       PERCEPTION = File.expand_path("../../data/perception.csv", __dir__)
