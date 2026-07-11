@@ -281,6 +281,43 @@ next volley finds nothing to hook — she falls silent while alice keeps
 carrying it. `--generative` works here too: the tones are generated, the
 words stay the Mind's.
 
+### The memory stream
+
+The paper's agents act *from* memory — a stream of experiences scored by
+recency, importance and relevance decides what they do next. Here the
+causal arrow is reversed, like the Mind's: a resident's `Memory` files
+every experience (who it came from, what was witnessed, which program
+fired, how much pressure it added) and never causes a feeling. What the
+record buys, in Hawkins' terms:
+
+- **A grudge is attributed pressure** — charge still held, filed under a
+  name. It is computed, never stored: a moment counts only while its
+  program is still installed. Surrender the program and the grudges
+  under it dissolve — the memory stays (nothing is forgotten), the
+  charge is gone. You remember what they did; it just doesn't run you.
+- **The attribution is the firmware's error.** The feeling was the
+  program, not the person — which is exactly what a reflection now names
+  on the way out: *"the fear is the program, not the world; it was never
+  about alice."*
+- **Memory steers one thing: attention.** Among stimuli that pull
+  equally, a resident attends to the actor they hold the most against —
+  the paper's importance term, rendered as resentment.
+
+```
+$ bin/human+ town
+...
+After 12 ticks the town is still running. The pressure never left — it moved:
+  alice    calibration  95  9 programs installed, most pressurized: fear (19)
+           holds it against: bea (11)
+  bea      calibration  95  9 programs installed, most pressurized: fear (19)
+           holds it against: alice (11)
+
+$ bin/human+ converse
+...
+  alice    calibration  95  carries 8 more than they brought, 3 of it filed
+           under bea — venting is not release
+```
+
 ## The CLI
 
 ```

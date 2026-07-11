@@ -82,10 +82,9 @@ module HumanPlus
     # pressure ticks up), the highest state if no program hooks, or +nil+
     # — silence.
     def fire(resident, witnessed)
-      _, program = strongest_pull(resident.human, [witnessed])
+      _, program = strongest_pull(resident, [witnessed])
       if program
-        resident.human.experience(witnessed.text)
-        resident.human.last_response
+        experience_and_remember(resident, witnessed, program)
       else
         resident.human.states.max_by(&:level)
       end

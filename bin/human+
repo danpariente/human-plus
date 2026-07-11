@@ -211,6 +211,8 @@ def print_town(stimulus, ticks, generative: false)
                "#{r.human.programs.size} programs installed, most pressurized: #{top.name} (#{top.pressure})"
              end
     puts format("  %-8s calibration %3d  %s", r.name, r.human.calibration, status)
+    ledger = r.memory.grudges.map { |who, charge| "#{who} (#{charge})" }.join(", ")
+    puts format("  %-8s holds it against: %s", "", ledger) unless ledger.empty?
   end
 end
 
@@ -251,8 +253,17 @@ def print_conversation(a, b, stimulus, turns, generative: false)
   end
 
   pair.each do |r|
+    other = (pair - [r]).first
     delta = r.human.programs.sum(&:pressure) - before[r.name]
-    note = delta.positive? ? "carries #{delta} more than they brought — venting is not release" : "carries nothing new"
+    held = r.memory.against(other.name)
+    note = if delta.positive?
+             filed = held.positive? ? ", #{held} of it filed under #{other.name}" : ""
+             "carries #{delta} more than they brought#{filed} — venting is not release"
+           elsif delta.negative?
+             "carries #{-delta} less than they brought — something ran out"
+           else
+             "carries nothing new"
+           end
     puts format("  %-8s calibration %3d  %s", r.name, r.human.calibration, note)
   end
 end

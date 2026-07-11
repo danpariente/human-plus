@@ -2,6 +2,7 @@
 
 require "csv"
 require_relative "npc"
+require_relative "memory"
 
 module HumanPlus
   ##
@@ -80,12 +81,14 @@ module HumanPlus
     end
 
     ##
-    # A resident is a Human with a name and, rarely, enough awareness to
-    # notice its own programs running. +awareness+ is a count of thoughts:
-    # how many the Mind must generate on one subject before this human
-    # notices the subject is the feeling. +nil+ — the Common Human default
-    # — means the noticing never comes.
-    Resident = Struct.new(:name, :human, :awareness) do
+    # A resident is a Human with a name, a Memory (the town files every
+    # experience: who, what, which program fired — see Memory) and,
+    # rarely, enough awareness to notice its own programs running.
+    # +awareness+ is a count of thoughts: how many the Mind must generate
+    # on one subject before this human notices the subject is the
+    # feeling. +nil+ — the Common Human default — means the noticing
+    # never comes.
+    Resident = Struct.new(:name, :human, :awareness, :memory) do
       def aware? = !awareness.nil?
     end
 
@@ -135,7 +138,7 @@ module HumanPlus
     # Add a resident. The default human is the default human: an NPC
     # running the factory firmware, with no awareness threshold at all.
     def settle(name, human: NPC.new, awareness: nil)
-      @residents << Resident.new(name.to_s, human, awareness)
+      @residents << Resident.new(name.to_s, human, awareness, Memory.of(human))
       self
     end
 
@@ -169,12 +172,11 @@ module HumanPlus
         heard = @air.reject { |w| w.actor == resident.name }
         next if heard.empty?
 
-        witnessed, program = strongest_pull(resident.human, heard)
+        witnessed, program = strongest_pull(resident, heard)
         if program
-          reaction = resident.human.experience(witnessed.text)
-          feeling = resident.human.last_response
-          events << Reacted.new(resident.name, witnessed, feeling.name, feeling.level, feeling.pressure, reaction)
-          breeze << exhale(resident, reaction)
+          feeling = experience_and_remember(resident, witnessed, program)
+          events << Reacted.new(resident.name, witnessed, feeling.name, feeling.level, feeling.pressure, feeling.reaction)
+          breeze << exhale(resident, feeling.reaction)
           events.concat(reflect(resident))
         elsif (state = resident.human.states.max_by(&:level))
           events << Radiated.new(resident.name, state.name, state.level, state.reaction)
@@ -206,13 +208,27 @@ module HumanPlus
     # The paper scores retrieval by recency x importance x relevance. The
     # firmware is simpler: of everything heard, whatever hooks the
     # lowest-calibrating program wins — the same strongest-pull rule as
-    # Human#experience, applied across stimuli. The rest of the tick goes
-    # unregistered; attention has one channel.
-    def strongest_pull(human, heard)
+    # Human#experience, applied across stimuli — and among equal pulls,
+    # attention goes to the actor the resident holds the most against
+    # (the paper's importance term, rendered as resentment — see Memory).
+    # The rest of the tick goes unregistered; attention has one channel.
+    def strongest_pull(resident, heard)
       heard.filter_map { |witnessed|
-        program = human.programs.select { |p| p.triggered_by?(witnessed.text) }.min_by(&:level)
+        program = resident.human.programs.select { |p| p.triggered_by?(witnessed.text) }.min_by(&:level)
         [witnessed, program] if program
-      }.min_by { |_, program| program.level } || [nil, nil]
+      }.min_by { |witnessed, program| [program.level, -resident.memory.against(witnessed.actor)] } || [nil, nil]
+    end
+
+    ##
+    # The resident experiences the stimulus, and the town files the
+    # moment: who it came from, what was witnessed, which program fired,
+    # how much pressure it added. Memory records; it never causes.
+    def experience_and_remember(resident, witnessed, program)
+      before = program.pressure
+      resident.human.experience(witnessed.text)
+      felt = resident.human.last_response
+      resident.memory.file(witnessed.actor, witnessed.text, felt.name, felt.pressure - before)
+      felt
     end
 
     ##
@@ -237,6 +253,8 @@ module HumanPlus
 
       insight = "#{commas(supply(noticed))} thoughts, every one a variation on " \
                 "#{noticed.thought_seeds.first.inspect} — the #{noticed.name} is the program, not the world"
+      scapegoat = resident.memory.scapegoat(noticed.name)
+      insight += "; it was never about #{scapegoat}" if scapegoat
       waves = []
       resident.human.surrender(noticed.name) { |wave, _| waves << wave }
       [Reflected.new(resident.name, noticed.name, insight, waves, resident.human.calibration)]
