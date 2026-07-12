@@ -197,7 +197,7 @@ module HumanPlus
         params = URI.decode_www_form(body).to_h
 
         case [method, raw_path.to_s.split("?").first]
-        when ["GET", "/"] then respond(client, 200, "text/html; charset=utf-8", PAGE)
+        when ["GET", "/"] then respond(client, 200, "text/html; charset=utf-8", page)
         when ["GET", "/state"] then respond(client, 200, "application/json", JSON.generate(state))
         when ["POST", "/control"]
           control(params["action"])
@@ -213,6 +213,9 @@ module HumanPlus
       ensure
         client.close rescue nil
       end
+
+      # The page this window serves — subclasses bring their own.
+      def page = PAGE
 
       def respond(client, code, type, content)
         reason = { 200 => "OK", 404 => "Not Found" }.fetch(code, "OK")

@@ -32,6 +32,7 @@ require_relative "human_plus/town"
 require_relative "human_plus/conversation"
 require_relative "human_plus/chart"
 require_relative "human_plus/square"
+require_relative "human_plus/world"
 
 # Deliberate namespace pollution in service of the art: the cast, hoisted
 # to the top level. FEELINGS = PROGRAMS = RESPONSES is not a slogan here —

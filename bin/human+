@@ -32,6 +32,10 @@ def usage
                                       five agents server-side; when the town goes quiet
                                       the world incites the next stimulus from rotation
                                       (--generative works here too)
+      human+ world [--port=N]         a Ruby ai-town: agents wander a map, meet, and
+                                      fall into conversation — the words are the Mind
+                                      aloud, played back over their heads
+                                      (--generative works here too)
 
     The real documentation is read with ri:
       rake ri && ri -d .ri HumanPlus::Human#surrender
@@ -424,25 +428,43 @@ def live(stimulus, generative: false)
   end
 end
 
-def ui(port, generative: false)
+def populate(generative)
   town = Town.new(narrator: build_narrator(generative))
   town.settle("dee")
   town.settle("ed", awareness: 14_000)
+  town
+end
 
-  square = Town::Square.new(town)
+def window(square, port, intro)
   bound = square.serve(port)
   square.run_loop
   url = "http://127.0.0.1:#{bound}"
-
-  puts "The town is alive at #{url}"
-  puts "#{town.residents.size} agents on one loop — alice, bea and dee never look;"
-  puts "carol and ed reflect, eventually. When the town goes quiet, the world"
-  puts "incites the next stimulus from data/stimuli.csv. Ctrl-C closes the window."
+  puts intro.call(url)
   system("open", url, exception: false) if RUBY_PLATFORM.include?("darwin")
   sleep
 rescue Interrupt
-  square&.stop
+  square.stop
   puts "\nthe window is closed. the town, presumably, keeps going."
+end
+
+def ui(port, generative: false)
+  town = populate(generative)
+  window(Town::Square.new(town), port, lambda { |url|
+    "The town is alive at #{url}\n" \
+    "#{town.residents.size} agents on one loop — alice, bea and dee never look;\n" \
+    "carol and ed reflect, eventually. When the town goes quiet, the world\n" \
+    "incites the next stimulus from data/stimuli.csv. Ctrl-C closes the window."
+  })
+end
+
+def walking_world(port, generative: false)
+  town = populate(generative)
+  window(Town::World.new(town), port, lambda { |url|
+    "The world is walking at #{url}\n" \
+    "#{town.residents.size} agents wander the map; when two come within earshot they\n" \
+    "fall into conversation — the words are the Mind aloud, the listener hears the\n" \
+    "tone. They steer away from whoever they hold a grudge against. Ctrl-C closes."
+  })
 end
 
 command, *rest = ARGV
@@ -473,5 +495,9 @@ when "ui"
   generative = !rest.delete("--generative").nil?
   port_flag = rest.find { |arg| arg.start_with?("--port") }
   ui((port_flag&.split("=", 2)&.last || 4200).to_i, generative:)
+when "world"
+  generative = !rest.delete("--generative").nil?
+  port_flag = rest.find { |arg| arg.start_with?("--port") }
+  walking_world((port_flag&.split("=", 2)&.last || 4300).to_i, generative:)
 else usage
 end

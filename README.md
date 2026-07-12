@@ -365,6 +365,32 @@ bin/human+ ui                # http://127.0.0.1:4200
 bin/human+ ui --port=8080 --generative
 ```
 
+### The world, walking
+
+The full ai-town shape, in stdlib Ruby: `bin/human+ world` puts the five
+agents on a tile map — the well, the chapel, the inn, a few trees — and
+lets them **wander**. When two come within earshot they **fall into
+conversation**: the real `Town#converse`, its transcript played back
+line by line as speech bubbles over their heads while they stand facing
+each other; then they part, carrying it with them, and cool off before
+meeting again. Reflections ring mid-encounter; a resident can fall
+silent; an emancipated one strolls — slower, steady, glowing — while
+programs hurry and flicker.
+
+Nobody picks a route freely: residents steer *away* from whoever they
+hold a grudge against, so the square physically polarizes as the ledger
+grows. The opener for each meeting comes from the world's rotation — or
+from you (`incite`: you hand the town something to talk about).
+
+```
+bin/human+ world             # http://127.0.0.1:4300
+bin/human+ world --generative --port=8080
+```
+
+(Running the original ai-town itself needs its Convex backend and an
+interactive login; this is that architecture — game loop, agents,
+proximity conversations, live window — with no dependencies at all.)
+
 ### First person
 
 `bin/human+ live` settles *you* into the town, running the same factory
@@ -412,6 +438,7 @@ bin/human+ town --chart[=f.html]    # ... also written as a self-contained page
 bin/human+ converse [a b ["<stimulus>" [n]]]  # two residents at close range
 bin/human+ live ["<stimulus>"]      # first person: the question an NPC never gets
 bin/human+ ui [--port=N]            # the town, alive in a browser — loop + 5 agents
+bin/human+ world [--port=N]         # a Ruby ai-town: wander, meet, converse
 ```
 
 ## The documentation is read with `ri`
