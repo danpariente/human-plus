@@ -28,6 +28,10 @@ def usage
       human+ live ["<stimulus>"]      first person: you are settled into the town, and
                                       when a program of yours fires you get the question
                                       an NPC never gets (--generative works here too)
+      human+ ui [--port=N]            the town, alive in a browser: the engine loop ticks
+                                      five agents server-side; when the town goes quiet
+                                      the world incites the next stimulus from rotation
+                                      (--generative works here too)
 
     The real documentation is read with ri:
       rake ri && ri -d .ri HumanPlus::Human#surrender
@@ -420,6 +424,27 @@ def live(stimulus, generative: false)
   end
 end
 
+def ui(port, generative: false)
+  town = Town.new(narrator: build_narrator(generative))
+  town.settle("dee")
+  town.settle("ed", awareness: 14_000)
+
+  square = Town::Square.new(town)
+  bound = square.serve(port)
+  square.run_loop
+  url = "http://127.0.0.1:#{bound}"
+
+  puts "The town is alive at #{url}"
+  puts "#{town.residents.size} agents on one loop — alice, bea and dee never look;"
+  puts "carol and ed reflect, eventually. When the town goes quiet, the world"
+  puts "incites the next stimulus from data/stimuli.csv. Ctrl-C closes the window."
+  system("open", url, exception: false) if RUBY_PLATFORM.include?("darwin")
+  sleep
+rescue Interrupt
+  square&.stop
+  puts "\nthe window is closed. the town, presumably, keeps going."
+end
+
 command, *rest = ARGV
 
 case command
@@ -444,5 +469,9 @@ when "converse"
 when "live"
   generative = !rest.delete("--generative").nil?
   live(rest[0] || "criticism lands on a mistake", generative:)
+when "ui"
+  generative = !rest.delete("--generative").nil?
+  port_flag = rest.find { |arg| arg.start_with?("--port") }
+  ui((port_flag&.split("=", 2)&.last || 4200).to_i, generative:)
 else usage
 end

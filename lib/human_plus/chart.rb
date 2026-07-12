@@ -53,7 +53,7 @@ module HumanPlus
         events.grep(Reflected).each do |e|
           @reflections << { tick: tick, name: e.actor, feeling: e.feeling }
         end
-        @transcript << { tick: tick, lines: events.map { |e| line_for(e) } }
+        @transcript << { tick: tick, lines: events.map { |e| Town.describe(e) } }
         self
       end
 
@@ -89,22 +89,6 @@ module HumanPlus
         @town.residents.each do |r|
           @calibration[r.name] << r.human.calibration
           @pressure[r.name] << r.human.programs.sum(&:pressure)
-        end
-      end
-
-      def line_for(event)
-        case event
-        when Reacted
-          at = event.witnessed.reaction ? "#{event.witnessed.actor}'s :#{event.witnessed.reaction}" : event.witnessed.actor
-          "#{event.actor} — #{event.feeling}(#{event.level}), pressure #{event.pressure} -> :#{event.reaction}, at #{at}"
-        when Reflected
-          "#{event.actor} reflects: #{event.insight} — lets go of #{event.feeling} (waves: #{event.waves.join(' ')}), calibration #{event.calibration}"
-        when Radiated
-          "#{event.actor} — #{event.state}(#{event.level}) -> :#{event.reaction}; unconditional, nothing below Courage to run"
-        when Unmoved
-          "#{event.actor} — nothing hooks; the stimulus passes through"
-        else
-          event.to_s
         end
       end
 

@@ -173,6 +173,30 @@ module HumanPlus
     def quiet? = @air.empty?
 
     ##
+    # What is in the air right now — the Witnessed the next tick will
+    # deliver to every resident.
+    def air = @air.dup
+
+    ##
+    # One event, described — the shared sentence that the Chart, the
+    # Square, and anything else watching the town prints.
+    def self.describe(event)
+      case event
+      when Reacted
+        at = event.witnessed.reaction ? "#{event.witnessed.actor}'s :#{event.witnessed.reaction}" : event.witnessed.actor
+        "#{event.actor} — #{event.feeling}(#{event.level}), pressure #{event.pressure} -> :#{event.reaction}, at #{at}"
+      when Reflected
+        "#{event.actor} reflects: #{event.insight} — lets go of #{event.feeling} (waves: #{event.waves.join(' ')}), calibration #{event.calibration}"
+      when Radiated
+        "#{event.actor} — #{event.state}(#{event.level}) -> :#{event.reaction}; unconditional, nothing below Courage to run"
+      when Unmoved
+        "#{event.actor} — nothing hooks; the stimulus passes through"
+      else
+        event.to_s
+      end
+    end
+
+    ##
     # One turn of the loop. Every resident witnesses everything in the air
     # except their own doing; attention follows the strongest pull; the
     # reactions produced become the air of the next tick. Returns the
