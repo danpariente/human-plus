@@ -25,6 +25,9 @@ def usage
                                       two residents at close range: the words are the
                                       Mind aloud; the listener responds to the tone
                                       (--generative works here too)
+      human+ live ["<stimulus>"]      first person: you are settled into the town, and
+                                      when a program of yours fires you get the question
+                                      an NPC never gets (--generative works here too)
 
     The real documentation is read with ri:
       rake ri && ri -d .ri HumanPlus::Human#surrender
@@ -179,26 +182,8 @@ def print_town(stimulus, ticks, generative: false, chart_path: nil)
   town.run(stimulus, ticks: ticks) do |n, events|
     chart&.record(n, events)
     puts "tick #{n}"
-    if generative
-      events.grep(Town::Reacted).map(&:witnessed).uniq(&:text).each do |w|
-        source = w.reaction ? "#{w.actor}'s :#{w.reaction}" : w.actor
-        puts %(  in the air (#{source}): "#{w.text}")
-      end
-    end
-    events.each do |e|
-      case e
-      when Town::Reacted
-        at = e.witnessed.reaction ? "#{e.witnessed.actor}'s :#{e.witnessed.reaction}" : e.witnessed.actor
-        puts format("  %-8s %s(%d)  pressure %-3d -> :%-12s at %s", e.actor, e.feeling, e.level, e.pressure, e.reaction, at)
-      when Town::Reflected
-        puts format("  %-8s reflects: %s", e.actor, e.insight)
-        puts format("  %-8s lets go of %s  (waves: %s)  calibration: %d", "", e.feeling, e.waves.join(" "), e.calibration)
-      when Town::Radiated
-        puts format("  %-8s %s(%d) -> :%s — unconditional; witnessed with no trigger in it", e.actor, e.state, e.level, e.reaction)
-      when Town::Unmoved
-        puts format("  %-8s nothing hooks — the stimulus passes through", e.actor)
-      end
-    end
+    print_in_the_air(events) if generative
+    events.each { |e| print_event(e) }
     puts
   end
 
@@ -223,6 +208,28 @@ def print_town(stimulus, ticks, generative: false, chart_path: nil)
   File.write(chart_path, chart.to_html)
   puts
   puts "The run, as a page: #{chart_path} — open it in a browser."
+end
+
+def print_event(e)
+  case e
+  when Town::Reacted
+    at = e.witnessed.reaction ? "#{e.witnessed.actor}'s :#{e.witnessed.reaction}" : e.witnessed.actor
+    puts format("  %-8s %s(%d)  pressure %-3d -> :%-12s at %s", e.actor, e.feeling, e.level, e.pressure, e.reaction, at)
+  when Town::Reflected
+    puts format("  %-8s reflects: %s", e.actor, e.insight)
+    puts format("  %-8s lets go of %s  (waves: %s)  calibration: %d", "", e.feeling, e.waves.join(" "), e.calibration)
+  when Town::Radiated
+    puts format("  %-8s %s(%d) -> :%s — unconditional; witnessed with no trigger in it", e.actor, e.state, e.level, e.reaction)
+  when Town::Unmoved
+    puts format("  %-8s nothing hooks — the stimulus passes through", e.actor)
+  end
+end
+
+def print_in_the_air(events)
+  events.grep(Town::Reacted).map(&:witnessed).uniq(&:text).each do |w|
+    source = w.reaction ? "#{w.actor}'s :#{w.reaction}" : w.actor
+    puts %(  in the air (#{source}): "#{w.text}")
+  end
 end
 
 def build_narrator(generative)
@@ -277,6 +284,142 @@ def print_conversation(a, b, stimulus, turns, generative: false)
   end
 end
 
+def sit_with(player, name)
+  feeling = player.public_send(name)
+  puts "  stay with it. no story, no name — just the stored energy. [Enter per wave]"
+  player.surrender(name) do |wave, left|
+    print "    released #{wave} — #{left} unit#{'s' unless left == 1} left "
+    $stdin.gets or abort
+  end
+  puts "  #{name} has run out. you.respond_to?(:#{name})  # => false"
+  puts "  calibration: #{player.calibration}"
+  feeling
+end
+
+def player_turn(player, witnessed, program)
+  source = witnessed.reaction ? "#{witnessed.actor}'s :#{witnessed.reaction}" : witnessed.actor
+  puts
+  puts %(  at you, from #{source}: "#{witnessed.text}")
+  puts "  it fires: #{program.name} (#{program.level}, #{MapOfConsciousness.name_of(program.level)}), pressure #{program.pressure}"
+  puts "  the mind: #{player.mind.thoughts(program.name).first(3).map(&:inspect).join(' · ')} ..."
+  loop do
+    print "  suppress, express, escape — or surrender?  [s/e/a/S] "
+    case $stdin.gets&.strip
+    when "s"
+      program.suppress!
+      puts "  pushed down. pressure #{program.pressure} — the mind will spend it."
+      return program.reaction
+    when "e"
+      program.express!
+      puts %(  you, aloud: "#{player.mind.thoughts(program.name).first}")
+      puts "  vented — just enough to let the rest be suppressed. pressure #{program.pressure}."
+      return program.reaction
+    when "a"
+      program.escape!
+      puts "  the drink, the scroll, the busyness. nothing changes; it waits."
+      return program.reaction
+    when "S"
+      sit_with(player, program.name)
+      return nil # nothing runs; the town witnesses nothing
+    when nil, "q"
+      abort "\nyou left the town running. it will manage — it always does."
+    end
+  end
+end
+
+def reflect_menu(player)
+  if player.programs.empty?
+    puts "  nothing left to sit with."
+    return
+  end
+  puts "  installed: #{player.programs.map { |p| "#{p.name}(#{p.pressure})" }.join(', ')}"
+  print "  sit with which? "
+  name = $stdin.gets&.strip.to_s
+  return if name.empty?
+
+  unless player.respond_to?(name) && player.public_send(name).program?
+    puts "  you don't run a `#{name}` program."
+    return
+  end
+  sit_with(player, name.to_sym)
+end
+
+def print_standing(you, player, town)
+  puts "  calibration #{player.calibration}, #{player.programs.size} programs installed"
+  ledger = town.residents.find { |r| r.name == you }.memory.grudges
+  if ledger.empty?
+    puts "  the ledger: empty."
+  else
+    puts "  the ledger: #{ledger.map { |who, c| "#{who} (#{c})" }.join(', ')}"
+  end
+  top = player.programs.max_by(&:pressure)
+  puts "  loudest subject: #{top.name} — #{player.mind.thoughts(top.name).count} thoughts on it" if top
+end
+
+def live(stimulus, generative: false)
+  you = (ENV["USER"] || "you").downcase
+  player = NPC.new
+  town = Town.new(narrator: build_narrator(generative))
+  abort "the census already has a `#{you}`" if town.residents.any? { |r| r.name == you }
+
+  puts "You wake up in the town as `#{you}`. You ship with the factory firmware —"
+  puts "#{player.programs.size} programs you never chose, calibration #{player.calibration}. alice and bea never look;"
+  puts "carol reflects, eventually. The difference is one thing only: when a program"
+  puts "of yours fires, you get the question an NPC never gets."
+  puts
+  puts "Choices: [s]uppress  [e]xpress  [a] escape  [S]urrender — between ticks,"
+  puts "[r] sit with any installed program, [l] your standing, [q] quit."
+  puts
+
+  town.settle(you, human: player) { |witnessed, program| player_turn(player, witnessed, program) }
+  town.incite(stimulus)
+  puts %(the world incites: "#{stimulus}")
+
+  tick = 0
+  loop do
+    tick += 1
+    puts
+    puts "tick #{tick}"
+    events = town.tick
+    print_in_the_air(events) if generative
+    events.each { |e| print_event(e) }
+
+    break if player.emancipated?
+    if town.quiet?
+      puts
+      puts "the town has gone quiet — nothing below Courage was left to pass it on."
+      break
+    end
+
+    quitting = false
+    loop do
+      print "\n[Enter] next tick · [r]eflect · [l] standing · [q]uit  "
+      case $stdin.gets&.strip
+      when "r" then reflect_menu(player)
+      when "l" then print_standing(you, player, town)
+      when nil, "q" then quitting = true
+      else break
+      end
+      break if quitting || player.emancipated?
+    end
+    break if quitting || player.emancipated?
+  end
+
+  puts
+  if player.emancipated?
+    love = player.love
+    puts "Nothing installed calibrates below Courage (200). Emotional emancipation:"
+    puts "  what remains: #{love.name}(#{love.level}) -> :#{love.reaction} — unconditional; it needs nothing from the town"
+    puts "  the ledger:   empty — every grudge dissolved with its program"
+    puts "  the mind:     #{player.mind.thoughts(:love).count} thoughts. quiet."
+    puts "  you.npc?      #{player.npc?}"
+    puts
+    puts "The town keeps running. It no longer runs you."
+  else
+    print_standing(you, player, town)
+  end
+end
+
 command, *rest = ARGV
 
 case command
@@ -298,5 +441,8 @@ when "converse"
   print_conversation(rest[0] || "alice", rest[1] || "bea",
                      rest[2] || "your partner doesn't text back — the absence of the beloved",
                      (rest[3] || 8).to_i, generative:)
+when "live"
+  generative = !rest.delete("--generative").nil?
+  live(rest[0] || "criticism lands on a mistake", generative:)
 else usage
 end

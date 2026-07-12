@@ -99,6 +99,52 @@ class TestTown < Minitest::Test
     assert_predicate town, :quiet? # the cascade dies at the saint's doorstep
   end
 
+  def test_a_played_resident_chooses_for_itself
+    town = Town.new(nil).settle("bob")
+    asked = nil
+    town.settle("dan") do |witnessed, program|
+      asked = [witnessed.actor, program.name]
+      program.suppress!
+      program.reaction
+    end
+    town.incite("thinking about the future")
+
+    events = town.tick
+    assert_equal ["the world", :fear], asked
+    assert_equal :flee, events.grep(Town::Reacted).find { |e| e.actor == "dan" }.reaction
+    dan = town.residents.last
+    assert_equal 11, dan.human.fear.pressure
+    assert_equal 1, dan.memory.moments.last.charge
+  end
+
+  def test_a_played_resident_can_let_go_instead_of_reacting
+    town = Town.new(nil).settle("bob")
+    player = NPC.new
+    town.settle("dan", human: player) { |_w, program| player.surrender(program.name) && nil }
+    town.incite("thinking about the future")
+
+    events = town.tick
+    assert(events.grep(Town::Reacted).none? { |e| e.actor == "dan" }) # nothing entered the air
+    refute player.respond_to?(:fear)
+    assert_equal 0, town.residents.last.memory.moments.last.charge # letting go files nothing
+
+    # bob's next flee finds no hook — the cascade dies at dan's doorstep
+    assert(town.tick.any? { |e| Town::Unmoved === e && e.actor == "dan" })
+  end
+
+  def test_the_question_only_comes_when_something_hooks
+    saint = NPC.new
+    saint.programs.map(&:name).each { |name| saint.surrender(name) }
+    asked = false
+    town = Town.new(nil).settle("bob")
+    town.settle("dan", human: saint) { asked = true }
+    town.incite("a sunset")
+
+    events = town.tick
+    refute asked # nothing below Courage left to fire — nothing to choose
+    assert(events.any? { |e| Town::Radiated === e && e.actor == "dan" })
+  end
+
   def test_among_npcs_the_pressure_never_leaves_the_town
     town = two_npcs
     total = ->(t) { t.residents.sum { |r| r.human.programs.sum(&:pressure) } }

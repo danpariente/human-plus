@@ -88,7 +88,11 @@ module HumanPlus
     # on one subject before this human notices the subject is the
     # feeling. +nil+ — the Common Human default — means the noticing
     # never comes.
-    Resident = Struct.new(:name, :human, :awareness, :memory) do
+    #
+    # +played_by+, when set, makes this the one resident who is not on
+    # firmware alone: when a program of theirs would fire, the town asks
+    # the block instead of reacting automatically (see #settle).
+    Resident = Struct.new(:name, :human, :awareness, :memory, :played_by) do
       def aware? = !awareness.nil?
     end
 
@@ -137,8 +141,16 @@ module HumanPlus
     ##
     # Add a resident. The default human is the default human: an NPC
     # running the factory firmware, with no awareness threshold at all.
-    def settle(name, human: NPC.new, awareness: nil)
-      @residents << Resident.new(name.to_s, human, awareness, Memory.of(human))
+    #
+    # Pass a block to play the resident yourself — first person. When a
+    # program of theirs fires, the block is called with
+    # <tt>(witnessed, program)</tt> and must handle the feeling (the four
+    # verbs of Feeling: suppress!, express!, escape! — or
+    # Human#surrender) and return the reaction to put in the air, or
+    # +nil+ if nothing runs (you let it go; the town witnesses nothing).
+    # An NPC never gets the question; that is what makes it an NPC.
+    def settle(name, human: NPC.new, awareness: nil, &played_by)
+      @residents << Resident.new(name.to_s, human, awareness, Memory.of(human), played_by)
       self
     end
 
@@ -173,7 +185,13 @@ module HumanPlus
         next if heard.empty?
 
         witnessed, program = strongest_pull(resident, heard)
-        if program
+        if program && resident.played_by
+          reaction = play_turn(resident, witnessed, program)
+          if reaction
+            events << Reacted.new(resident.name, witnessed, program.name, program.level, program.pressure, reaction)
+            breeze << exhale(resident, reaction)
+          end
+        elsif program
           feeling = experience_and_remember(resident, witnessed, program)
           events << Reacted.new(resident.name, witnessed, feeling.name, feeling.level, feeling.pressure, feeling.reaction)
           breeze << exhale(resident, feeling.reaction)
@@ -217,6 +235,17 @@ module HumanPlus
         program = resident.human.programs.select { |p| p.triggered_by?(witnessed.text) }.min_by(&:level)
         [witnessed, program] if program
       }.min_by { |witnessed, program| [program.level, -resident.memory.against(witnessed.actor)] } || [nil, nil]
+    end
+
+    ##
+    # A played resident's turn: the block handles the feeling and says
+    # what (if anything) enters the air. The moment is filed either way —
+    # clamped at zero, because a surrendered feeling charges nothing.
+    def play_turn(resident, witnessed, program)
+      before = program.pressure
+      reaction = resident.played_by.call(witnessed, program)
+      resident.memory.file(witnessed.actor, witnessed.text, program.name, [program.pressure - before, 0].max)
+      reaction
     end
 
     ##
